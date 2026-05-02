@@ -2,7 +2,6 @@
   import Button from "$lib/components/ui/button/button.svelte";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { Switch } from "$lib/components/ui/switch/index.js";
   import { toast } from "svelte-sonner";
   import { goto } from "$app/navigation";
 
@@ -15,6 +14,14 @@
     ShieldIcon,
   } from "$lib/icons/index.js";
 
+  import {
+    CURRENCIES,
+    DEFAULT_CURRENCY,
+    convertFromUsdCents,
+    formatCurrency,
+    type CurrencyCode,
+  } from "$lib/utils/currencies.js";
+
   let { data } = $props();
 
   const allPlans = data.plans || [];
@@ -23,8 +30,24 @@
   const userData = data.userData;
 
   const activeProvider = data.activePaymentProvider || "stripe";
-  const isOpaybd = activeProvider === "opaybd";
-  const currencySymbol = isOpaybd ? "৳" : "$";
+
+  // Currency state — default from server (BDT). Persist in localStorage on change.
+  let currency = $state<CurrencyCode>(
+    (data.defaultCurrency as CurrencyCode) || DEFAULT_CURRENCY
+  );
+  if (typeof window !== "undefined") {
+    const saved = window.localStorage.getItem("ezbo_currency");
+    if (saved && saved in CURRENCIES) currency = saved as CurrencyCode;
+  }
+  $effect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("ezbo_currency", currency);
+    }
+  });
+
+  const currencyMeta = $derived(CURRENCIES[currency]);
+  const currencyOptions = Object.values(CURRENCIES);
+  let currencyOpen = $state(false);
 
   let isYearly = $state(false);
 
@@ -36,13 +59,10 @@
   );
   const paidPlans = $derived(isYearly ? yearlyPaidPlans : monthlyPaidPlans);
   const freePlan = $derived(allPlans.find((p) => p.tier === "free"));
-
-  // All four plans (Free + 3 paid) for the unified grid
   const displayPlans = $derived(
     freePlan ? [freePlan, ...paidPlans] : paidPlans
   );
 
-  // Plan visual metadata
   const planMeta: Record<string, { gradient: string; ring: string; iconBg: string; popular?: boolean; tagline: string }> = {
     free: {
       gradient: "from-slate-50 to-slate-100 dark:from-slate-900/40 dark:to-slate-800/40",
@@ -93,29 +113,27 @@
     return (tierOrder[planTier as keyof typeof tierOrder] || 0) < (tierOrder[currentTier as keyof typeof tierOrder] || 0);
   }
 
-  function formatPrice(plan: { priceAmount: number; priceAmountBdt?: number | null }): string {
-    if (isOpaybd && plan.priceAmountBdt) {
-      return (plan.priceAmountBdt / 100).toLocaleString("en-BD");
-    }
-    return (plan.priceAmount / 100).toFixed(2).replace(/\.00$/, "");
+  // ----- price formatters using selected currency -----
+  function formatTotal(plan: { priceAmount: number; priceAmountBdt?: number | null }): string {
+    return formatCurrency(
+      convertFromUsdCents(plan.priceAmount, currency, plan.priceAmountBdt),
+      currency
+    );
   }
-
-  function formatMonthlyPrice(plan: { priceAmount: number; priceAmountBdt?: number | null }): string {
-    if (isOpaybd && plan.priceAmountBdt) {
-      return (plan.priceAmountBdt / 100 / 12).toLocaleString("en-BD", { maximumFractionDigits: 0 });
-    }
-    return (plan.priceAmount / 100 / 12).toFixed(2).replace(/\.00$/, "");
+  function formatPerMonth(plan: { priceAmount: number; priceAmountBdt?: number | null }): string {
+    const value = convertFromUsdCents(plan.priceAmount, currency, plan.priceAmountBdt) / 12;
+    return formatCurrency(value, currency);
   }
-
   function getYearlySavings(tier: string): string | null {
     if (!isYearly) return null;
     const monthly = monthlyPaidPlans.find((p) => p.tier === tier);
     const yearly = yearlyPaidPlans.find((p) => p.tier === tier);
     if (!monthly || !yearly) return null;
-    const fullYear = monthly.priceAmount * 12;
-    const savings = fullYear - yearly.priceAmount;
+    const monthlyValue = convertFromUsdCents(monthly.priceAmount, currency, monthly.priceAmountBdt);
+    const yearlyValue = convertFromUsdCents(yearly.priceAmount, currency, yearly.priceAmountBdt);
+    const savings = monthlyValue * 12 - yearlyValue;
     if (savings <= 0) return null;
-    return (savings / 100).toFixed(0);
+    return formatCurrency(savings, currency);
   }
 
   async function handleSubscribe(priceId: string, planName: string, planTier: string) {
@@ -182,7 +200,7 @@
       if (updateResult.success) {
         if (updateResult.subscription?.proration_amount && updateResult.subscription.proration_amount > 0) {
           const prorationFormatted = (updateResult.subscription.proration_amount / 100).toFixed(2);
-          toast.info(`A proration charge of ${currencySymbol}${prorationFormatted} has been applied.`);
+          toast.info(`A proration charge of ${prorationFormatted} has been applied.`);
         }
         const successUrl = new URL("/settings/billing", window.location.origin);
         successUrl.searchParams.set("subscription_updated", "true");
@@ -233,7 +251,7 @@
 
 <svelte:head>
   <title>Pricing — EzboAI</title>
-  <meta name="description" content="Choose the perfect plan for your AI needs. 65+ models, image, video & voice generation." />
+  <meta name="description" content="Choose the perfect plan for your AI needs. Multi-currency pricing — pay in BDT, USD, EUR, INR & more." />
 </svelte:head>
 
 <div class="relative min-h-screen overflow-hidden bg-background">
@@ -245,8 +263,8 @@
   </div>
 
   <div class="container mx-auto px-4 py-8 max-w-7xl">
-    <!-- Back Button -->
-    <div class="mb-6">
+    <!-- Top bar: Back + Currency selector -->
+    <div class="flex items-center justify-between mb-6 gap-3">
       <Button
         variant="ghost"
         size="sm"
@@ -256,6 +274,58 @@
         <ArrowLeftIcon class="w-4 h-4" />
         Back to home
       </Button>
+
+      <!-- Currency selector -->
+      <div class="relative">
+        <button
+          type="button"
+          onclick={() => (currencyOpen = !currencyOpen)}
+          class="cursor-pointer inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/70 dark:bg-black/40 backdrop-blur-md px-3 py-2 text-sm font-medium hover:bg-accent/60 transition shadow-sm"
+        >
+          <span class="text-base leading-none">{currencyMeta.flag}</span>
+          <span class="font-semibold">{currencyMeta.code}</span>
+          <span class="text-muted-foreground">{currencyMeta.symbol}</span>
+          <svg class="w-3 h-3 ml-0.5 opacity-70" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5l3 3 3-3"/></svg>
+        </button>
+        {#if currencyOpen}
+          <div
+            role="presentation"
+            class="fixed inset-0 z-30"
+            onclick={() => (currencyOpen = false)}
+          ></div>
+          <div class="absolute right-0 mt-2 w-60 rounded-xl border border-border/60 bg-popover shadow-xl shadow-black/5 z-40 overflow-hidden">
+            <div class="px-3 py-2 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground border-b border-border/50">
+              Display currency
+            </div>
+            <ul class="max-h-72 overflow-y-auto py-1">
+              {#each currencyOptions as opt}
+                <li>
+                  <button
+                    type="button"
+                    onclick={() => { currency = opt.code; currencyOpen = false; }}
+                    class={`w-full flex items-center gap-3 px-3 py-2 text-sm hover:bg-accent/60 transition ${
+                      opt.code === currency ? "bg-accent/40 font-semibold" : ""
+                    }`}
+                  >
+                    <span class="text-base">{opt.flag}</span>
+                    <span class="flex-1 text-left">
+                      <span class="font-medium">{opt.code}</span>
+                      <span class="text-muted-foreground ml-1.5 text-xs">{opt.label}</span>
+                    </span>
+                    <span class="text-muted-foreground">{opt.symbol}</span>
+                    {#if opt.code === currency}
+                      <CheckIcon class="w-4 h-4 text-indigo-500" />
+                    {/if}
+                  </button>
+                </li>
+              {/each}
+            </ul>
+            <div class="px-3 py-2 text-[10px] text-muted-foreground border-t border-border/50">
+              Prices auto-converted from USD. BDT uses real BDT pricing.
+            </div>
+          </div>
+        {/if}
+      </div>
     </div>
 
     <!-- Header -->
@@ -308,21 +378,19 @@
       </div>
     </div>
 
-    <!-- Plans Grid (4 cards: Free + Starter + Pro + Advanced) -->
+    <!-- Plans Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16 items-stretch">
       {#each displayPlans as plan (plan.id)}
         {@const meta = planMeta[plan.tier] || planMeta.starter}
         {@const savings = getYearlySavings(plan.tier)}
         <div class="relative h-full group">
           {#if meta.popular}
-            <!-- Most Popular ribbon -->
             <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
               <div class="px-3 py-1 rounded-full text-[11px] font-bold text-white bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/40 flex items-center gap-1 whitespace-nowrap">
                 <StarIcon class="w-3 h-3 fill-white" />
                 MOST POPULAR
               </div>
             </div>
-            <!-- Glow effect for popular plan -->
             <div class="absolute -inset-px rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-60 blur-sm -z-10 group-hover:opacity-100 transition-opacity duration-500"></div>
           {/if}
 
@@ -352,22 +420,22 @@
             <div class="mb-5">
               {#if plan.tier === "free"}
                 <div class="flex items-baseline gap-1">
-                  <span class="text-5xl font-extrabold tracking-tight">{currencySymbol}0</span>
+                  <span class="text-5xl font-extrabold tracking-tight">{currencyMeta.symbol}0</span>
                   <span class="text-sm text-muted-foreground">/forever</span>
                 </div>
                 <p class="text-xs text-muted-foreground mt-1.5 h-4">No credit card required</p>
               {:else}
                 <div class="flex items-baseline gap-1">
-                  <span class="text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
-                    {currencySymbol}{isYearly ? formatMonthlyPrice(plan) : formatPrice(plan)}
+                  <span class="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent">
+                    {isYearly ? formatPerMonth(plan) : formatTotal(plan)}
                   </span>
                   <span class="text-sm text-muted-foreground">/mo</span>
                 </div>
                 <p class="text-xs text-muted-foreground mt-1.5 h-4">
                   {#if isYearly}
-                    {currencySymbol}{formatPrice(plan)} billed yearly
+                    {formatTotal(plan)} billed yearly
                     {#if savings}
-                      <span class="ml-1 text-emerald-600 dark:text-emerald-400 font-semibold">save {currencySymbol}{savings}</span>
+                      <span class="ml-1 text-emerald-600 dark:text-emerald-400 font-semibold">save {savings}</span>
                     {/if}
                   {:else}
                     Billed monthly
@@ -428,6 +496,19 @@
         </div>
       {/each}
     </div>
+
+    <!-- Currency note (only when non-payment currency) -->
+    {#if currency !== "BDT" && currency !== "USD"}
+      <div class="text-center mb-6">
+        <p class="text-xs text-muted-foreground">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/60 border border-border/50">
+            <SparkleIcon class="w-3 h-3" />
+            Showing approximate prices in {currencyMeta.label}. You will be charged in
+            {activeProvider === "opaybd" ? "BDT" : "USD"} at checkout.
+          </span>
+        </p>
+      </div>
+    {/if}
 
     <!-- Trust strip -->
     <div class="text-center max-w-3xl mx-auto">
