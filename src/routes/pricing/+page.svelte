@@ -332,10 +332,6 @@
 
     <!-- Header -->
     <div class="text-center mb-10 max-w-3xl mx-auto">
-      <Badge class="mb-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 px-3 py-1">
-        <SparkleIcon class="w-3 h-3 mr-1.5" />
-        Pricing
-      </Badge>
       <h1 class="text-4xl md:text-6xl font-bold mb-4 tracking-tight">
         Choose your
         <span class="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
