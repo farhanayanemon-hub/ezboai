@@ -5,14 +5,12 @@
   // UI Component imports
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-  import * as Popover from "$lib/components/ui/popover/index.js";
   import Button from "$lib/components/ui/button/button.svelte";
   import Logo from "$lib/components/Logo.svelte";
 
   // Icon imports
   import {
     ChevronDownIcon,
-    CirclePlusIcon,
     UpgradeIcon,
     AudioLinesIcon,
     ImagesIcon,
@@ -30,8 +28,6 @@
     MessageCircleIcon,
   } from "$lib/icons/index.js";
   import GitBranch from "@lucide/svelte/icons/git-branch";
-
-  let plusMenuOpen = $state(false);
 
   import { getContext } from "svelte";
   import type { ChatState } from "./chat-state.svelte.js";
