@@ -63,7 +63,13 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-        update: async ({ request }) => {
+        update: async ({ request, locals }) => {
+                // Defense in depth: layout load() guards GET, but POST actions bypass layout loads.
+                const session = await locals.auth();
+                if (!session?.user?.isAdmin) {
+                        return fail(403, { error: 'Forbidden: Admin access required' });
+                }
+
                 if (isDemoModeEnabled()) {
                         return fail(403, { error: DEMO_MODE_MESSAGES.ADMIN_SAVE_DISABLED });
                 }
@@ -108,9 +114,13 @@ export const actions: Actions = {
 
                         let recalculated = 0;
                         if (recalcBdt && rates.BDT) {
+                                // Only touch plans whose billing currency is BDT — other plans manage their
+                                // own priceAmountBdt (or don't use it) and must not be silently overwritten.
                                 const allPlans = await db.select().from(pricingPlans);
                                 for (const p of allPlans) {
                                         if (p.tier === 'free' || p.priceAmount === 0) continue;
+                                        const planCurrency = (p.currency || '').toString().toUpperCase();
+                                        if (planCurrency !== 'BDT') continue;
                                         const usd = p.priceAmount / 100;
                                         const bdt = Math.round(usd * rates.BDT);
                                         const bdtPaisa = bdt * 100;
@@ -136,7 +146,11 @@ export const actions: Actions = {
                 }
         },
 
-        reset: async () => {
+        reset: async ({ locals }) => {
+                const session = await locals.auth();
+                if (!session?.user?.isAdmin) {
+                        return fail(403, { error: 'Forbidden: Admin access required' });
+                }
                 if (isDemoModeEnabled()) {
                         return fail(403, { error: DEMO_MODE_MESSAGES.ADMIN_SAVE_DISABLED });
                 }

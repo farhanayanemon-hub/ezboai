@@ -140,7 +140,7 @@
                     id={`rate_${c.code}`}
                     name={`rate_${c.code}`}
                     type="number"
-                    step="0.01"
+                    step="any"
                     min="0.0001"
                     bind:value={rates[c.code]}
                     class="max-w-[140px] font-mono"
