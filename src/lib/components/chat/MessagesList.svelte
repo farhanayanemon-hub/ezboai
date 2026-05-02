@@ -304,38 +304,30 @@
       {:else}
         <!-- AI message - full width -->
         <Message from="assistant" class="max-w-full">
-          {#if message.content || (!isLoading && !isStreamingContent)}
-            <div
-              class="text-sm font-medium mb-2 text-slate-600 dark:text-slate-400 italic flex items-center"
-            >
-              {getModelDisplayName((message as any).model || selectedModel)}
-              {#if readAloudState.currentlyReadingMessageIndex === index && (readAloudState.isPlaying || readAloudState.isGenerating || readAloudState.audioElement)}
-                <span class="inline-flex items-center ms-2 gap-1">
-                  {#if readAloudState.isGenerating}
-                    <LoaderIcon
-                      class="w-3 h-3 animate-spin text-muted-foreground"
-                    />
-                  {:else}
-                    <Volume2Icon
-                      class="w-3 h-3 text-primary {readAloudState.isPlaying
-                        ? 'animate-pulse'
-                        : ''}"
-                    />
-                    <button
-                      type="button"
-                      class="p-0.5 rounded hover:bg-muted transition-colors"
-                      onclick={() => readAloudState.togglePlayPause()}
-                      title={readAloudState.isPlaying ? "Pause" : "Resume"}
-                    >
-                      {#if readAloudState.isPlaying}
-                        <PauseIcon class="w-4 h-4 text-primary" />
-                      {:else}
-                        <PlayIcon class="w-4 h-4 text-primary" />
-                      {/if}
-                    </button>
-                  {/if}
-                </span>
-              {/if}
+          <!-- Model name above each AI response is intentionally hidden so the user only sees the EzboAI brand. The read-aloud controls below are kept and rendered only when audio is active. -->
+          {#if (message.content || (!isLoading && !isStreamingContent)) && readAloudState.currentlyReadingMessageIndex === index && (readAloudState.isPlaying || readAloudState.isGenerating || readAloudState.audioElement)}
+            <div class="text-sm font-medium mb-2 flex items-center">
+              <span class="inline-flex items-center gap-1">
+                {#if readAloudState.isGenerating}
+                  <LoaderIcon class="w-3 h-3 animate-spin text-muted-foreground" />
+                {:else}
+                  <Volume2Icon
+                    class="w-3 h-3 text-primary {readAloudState.isPlaying ? 'animate-pulse' : ''}"
+                  />
+                  <button
+                    type="button"
+                    class="p-0.5 rounded hover:bg-muted transition-colors"
+                    onclick={() => readAloudState.togglePlayPause()}
+                    title={readAloudState.isPlaying ? "Pause" : "Resume"}
+                  >
+                    {#if readAloudState.isPlaying}
+                      <PauseIcon class="w-4 h-4 text-primary" />
+                    {:else}
+                      <PlayIcon class="w-4 h-4 text-primary" />
+                    {/if}
+                  </button>
+                {/if}
+              </span>
             </div>
           {/if}
 
