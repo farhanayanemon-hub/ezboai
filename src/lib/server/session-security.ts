@@ -31,7 +31,6 @@ export async function getSecureCookieConfig() {
           sameSite: 'lax' as const,
           path: '/',
           secure: isHTTPS,
-          domain: isProduction ? extractDomainFromOrigin(publicOrigin) : undefined,
           maxAge: 30 * 24 * 60 * 60, // 30 days
         }
       },
@@ -42,7 +41,6 @@ export async function getSecureCookieConfig() {
           sameSite: 'lax' as const,
           path: '/',
           secure: isHTTPS,
-          domain: isProduction ? extractDomainFromOrigin(publicOrigin) : undefined,
           maxAge: 15 * 60, // 15 minutes
         }
       },
@@ -53,7 +51,6 @@ export async function getSecureCookieConfig() {
           sameSite: 'lax' as const,
           path: '/',
           secure: isHTTPS,
-          domain: isProduction ? extractDomainFromOrigin(publicOrigin) : undefined,
           maxAge: 60 * 60, // 1 hour
         }
       },
@@ -64,7 +61,6 @@ export async function getSecureCookieConfig() {
           sameSite: 'lax' as const,
           path: '/',
           secure: isHTTPS,
-          domain: isProduction ? extractDomainFromOrigin(publicOrigin) : undefined,
           maxAge: 15 * 60, // 15 minutes
         }
       },
@@ -75,7 +71,6 @@ export async function getSecureCookieConfig() {
           sameSite: 'lax' as const,
           path: '/',
           secure: isHTTPS,
-          domain: isProduction ? extractDomainFromOrigin(publicOrigin) : undefined,
           maxAge: 15 * 60, // 15 minutes
         }
       },
@@ -86,7 +81,6 @@ export async function getSecureCookieConfig() {
           sameSite: 'lax' as const,
           path: '/',
           secure: isHTTPS,
-          domain: isProduction ? extractDomainFromOrigin(publicOrigin) : undefined,
           maxAge: 15 * 60, // 15 minutes
         }
       }

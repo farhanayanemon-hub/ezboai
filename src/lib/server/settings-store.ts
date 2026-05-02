@@ -680,14 +680,21 @@ export async function getDefaultPage(): Promise<string> {
 
 /**
  * Get public origin URL for the application
- * Priority: Admin settings -> ORIGIN env var -> localhost fallback
+ * Priority: AUTH_URL/ORIGIN env vars -> Admin settings -> localhost fallback
+ *
+ * Env vars take priority so production deployments (Vercel) cannot be broken
+ * by stale or wrong DB values for public_origin (which would otherwise cause
+ * cookies to be set with the wrong Domain attribute).
  */
 export async function getPublicOrigin(): Promise<string> {
+  const { env } = await import('$env/dynamic/private');
+  const envOrigin = (env.AUTH_URL || env.NEXTAUTH_URL || env.ORIGIN || '').trim();
+  if (envOrigin) {
+    return envOrigin;
+  }
   const settings = await settingsStore.getSettings();
   if (settings.publicOrigin?.trim()) {
     return settings.publicOrigin.trim();
   }
-  // Fallback to env var, then localhost
-  const { env } = await import('$env/dynamic/private');
-  return env.ORIGIN || 'http://localhost:5173';
+  return 'http://localhost:5173';
 }
