@@ -10,6 +10,8 @@
     StarIcon,
     CameraIcon,
     MicIcon,
+    ImageIcon,
+    FileIcon,
   } from "$lib/icons/index.js";
   import { VoiceModeState } from "./voice-mode-state.svelte.js";
   import { GUEST_MESSAGE_LIMIT } from "$lib/constants/guest-limits.js";
@@ -25,6 +27,22 @@
   // response without an account.
   let showLoginDialog = $state(false);
 
+  // Hidden file inputs for the three attach options (Camera / Image / Files)
+  // shown in the "+" action menu. Each one opens a different native picker.
+  let cameraInputEl = $state<HTMLInputElement | null>(null);
+  let imageInputEl = $state<HTMLInputElement | null>(null);
+  let fileInputEl = $state<HTMLInputElement | null>(null);
+
+  function handleAttachmentChange(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const picked = target.files;
+    if (picked && picked.length > 0 && promptInputContext) {
+      promptInputContext.add(picked);
+    }
+    // Reset so the same file can be re-picked later.
+    target.value = "";
+  }
+
   // Svelte AI Elements components
   import {
     PromptInput,
@@ -38,7 +56,6 @@
     PromptInputActionMenu,
     PromptInputActionMenuTrigger,
     PromptInputActionMenuContent,
-    PromptInputActionAddAttachments,
     PromptInputActionMenuItem,
     PromptInputButton,
     PlusIcon,
@@ -545,7 +562,7 @@
     <PromptInput
       onSubmit={handlePromptSubmit}
       onContextReady={(ctx) => (promptInputContext = ctx)}
-      accept="image/*,.txt,.md,.csv,.json"
+      accept="image/*,.txt,.md,.csv,.json,.pdf,application/pdf"
       multiple={true}
       maxFiles={3}
       maxFileSize={10_000_000}
@@ -588,12 +605,32 @@
               <PlusIcon class="size-4" />
             </PromptInputActionMenuTrigger>
             <PromptInputActionMenuContent>
-              <PromptInputActionAddAttachments
-                label={m["interface.attach_files"]()}
-              />
-              <PromptInputActionMenuItem onSelect={captureScreenshot}>
+              <PromptInputActionMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  cameraInputEl?.click();
+                }}
+              >
                 <CameraIcon class="mr-2 size-4" />
-                {m["interface.take_screenshot"]()}
+                Camera
+              </PromptInputActionMenuItem>
+              <PromptInputActionMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  imageInputEl?.click();
+                }}
+              >
+                <ImageIcon class="mr-2 size-4" />
+                Image
+              </PromptInputActionMenuItem>
+              <PromptInputActionMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  fileInputEl?.click();
+                }}
+              >
+                <FileIcon class="mr-2 size-4" />
+                Files
               </PromptInputActionMenuItem>
               {#if (promptInputContext?.files?.length ?? 0) > 0}
                 <PromptInputActionMenuItem
@@ -899,6 +936,33 @@
     </PromptInput>
   </div>
 </div>
+
+<!-- Hidden inputs for the three attach options. Kept outside the action menu
+     so closing the menu doesn't unmount them mid file-pick. -->
+<input
+  bind:this={cameraInputEl}
+  type="file"
+  accept="image/*"
+  capture="environment"
+  class="hidden"
+  onchange={handleAttachmentChange}
+/>
+<input
+  bind:this={imageInputEl}
+  type="file"
+  accept="image/*"
+  multiple
+  class="hidden"
+  onchange={handleAttachmentChange}
+/>
+<input
+  bind:this={fileInputEl}
+  type="file"
+  accept=".pdf,application/pdf,.txt,.md,.csv,.json"
+  multiple
+  class="hidden"
+  onchange={handleAttachmentChange}
+/>
 
 <!-- Branded sign-up / log-in popup shown when a guest tries to send a prompt. -->
 <Dialog.Root bind:open={showLoginDialog}>
