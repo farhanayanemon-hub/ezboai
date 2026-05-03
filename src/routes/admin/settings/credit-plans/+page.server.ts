@@ -4,6 +4,18 @@ import { eq, desc } from 'drizzle-orm'
 import { fail, redirect } from '@sveltejs/kit'
 import { isDemoModeEnabled, DEMO_MODE_MESSAGES } from '$lib/constants/demo-mode.js'
 
+const ALLOWED_CREDIT_TYPES = ['text', 'image', 'video', 'audio'] as const
+type CreditTypeValue = typeof ALLOWED_CREDIT_TYPES[number]
+
+function parseCreditTypes(data: FormData): CreditTypeValue[] {
+  const raw = data.getAll('creditTypes').map((v) => v.toString())
+  // De-dupe and keep only allowed values.
+  const filtered = Array.from(new Set(raw)).filter((v): v is CreditTypeValue =>
+    (ALLOWED_CREDIT_TYPES as readonly string[]).includes(v)
+  )
+  return filtered
+}
+
 export const load: PageServerLoad = async () => {
   try {
     const allPlans = await db
@@ -27,64 +39,58 @@ export const load: PageServerLoad = async () => {
 export const actions: Actions = {
   create: async ({ request }) => {
     if (isDemoModeEnabled()) {
-      return fail(403, {
-        error: DEMO_MODE_MESSAGES.ADMIN_SAVE_DISABLED
-      });
+      return fail(403, { error: DEMO_MODE_MESSAGES.ADMIN_SAVE_DISABLED });
     }
 
     const data = await request.formData()
 
     const name = data.get('name')?.toString()
     const description = data.get('description')?.toString() || null
-    const creditType = data.get('creditType')?.toString()
+    const creditTypesArr = parseCreditTypes(data)
     const creditAmount = data.get('creditAmount')?.toString()
     const priceAmount = data.get('priceAmount')?.toString()
     const priceAmountBdt = data.get('priceAmountBdt')?.toString()
     const currency = data.get('currency')?.toString() || 'usd'
 
-    if (!name || !creditType || !creditAmount || !priceAmount) {
-      return fail(400, {
-        error: 'Required fields are missing',
-        name, description, creditType, creditAmount, priceAmount, priceAmountBdt, currency
+    const failBack = (status: number, error: string) =>
+      fail(status, {
+        error,
+        name,
+        description,
+        creditTypes: creditTypesArr,
+        creditAmount,
+        priceAmount,
+        priceAmountBdt,
+        currency,
       })
-    }
 
-    if (!['text', 'image', 'video', 'audio'].includes(creditType)) {
-      return fail(400, {
-        error: 'Invalid credit type selected',
-        name, description, creditType, creditAmount, priceAmount, priceAmountBdt, currency
-      })
+    if (!name || creditTypesArr.length === 0 || !creditAmount || !priceAmount) {
+      return failBack(400, 'Name, at least one credit type, credit amount and price are required')
     }
 
     const creditAmountNum = parseInt(creditAmount)
     if (isNaN(creditAmountNum) || creditAmountNum <= 0) {
-      return fail(400, {
-        error: 'Credit amount must be a positive number',
-        name, description, creditType, creditAmount, priceAmount, priceAmountBdt, currency
-      })
+      return failBack(400, 'Credit amount must be a positive number')
     }
 
     const priceAmountNum = parseInt(priceAmount)
     if (isNaN(priceAmountNum) || priceAmountNum < 0) {
-      return fail(400, {
-        error: 'Price amount must be a valid positive number',
-        name, description, creditType, creditAmount, priceAmount, priceAmountBdt, currency
-      })
+      return failBack(400, 'Price amount must be a valid positive number')
     }
 
     const priceAmountBdtNum = priceAmountBdt ? parseInt(priceAmountBdt) : null
     if (priceAmountBdtNum !== null && (isNaN(priceAmountBdtNum) || priceAmountBdtNum < 0)) {
-      return fail(400, {
-        error: 'BDT price must be a valid positive number',
-        name, description, creditType, creditAmount, priceAmount, priceAmountBdt, currency
-      })
+      return failBack(400, 'BDT price must be a valid positive number')
     }
 
     try {
       await db.insert(creditPlans).values({
         name,
         description,
-        creditType: creditType as 'text' | 'image' | 'video' | 'audio',
+        // Keep the legacy single-type column populated with the first selected
+        // type so any code path still reading `creditType` keeps working.
+        creditType: creditTypesArr[0],
+        creditTypes: creditTypesArr,
         creditAmount: creditAmountNum,
         priceAmount: priceAmountNum,
         priceAmountBdt: priceAmountBdtNum,
@@ -99,18 +105,13 @@ export const actions: Actions = {
       }
 
       console.error('Error creating credit plan:', error)
-      return fail(500, {
-        error: 'Failed to create credit plan',
-        name, description, creditType, creditAmount, priceAmount, priceAmountBdt, currency
-      })
+      return failBack(500, 'Failed to create credit plan')
     }
   },
 
   toggleActive: async ({ request }) => {
     if (isDemoModeEnabled()) {
-      return fail(403, {
-        error: DEMO_MODE_MESSAGES.ADMIN_SAVE_DISABLED
-      });
+      return fail(403, { error: DEMO_MODE_MESSAGES.ADMIN_SAVE_DISABLED });
     }
 
     const data = await request.formData()

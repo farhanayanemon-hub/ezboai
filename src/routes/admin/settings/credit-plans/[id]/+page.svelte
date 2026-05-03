@@ -14,7 +14,16 @@
   let isSubmitting = $state(false);
   let isDeleting = $state(false);
 
-  let creditType = $state(form?.creditType || data.plan.creditType);
+  // Initial selection: form-rebound value if a previous submit failed,
+  // otherwise the plan's stored array, otherwise the legacy single-type
+  // column wrapped in an array.
+  let selectedCreditTypes = $state<string[]>(
+    form && "creditTypes" in form && Array.isArray((form as any).creditTypes)
+      ? ((form as any).creditTypes as string[])
+      : data.plan.creditTypes && data.plan.creditTypes.length > 0
+        ? data.plan.creditTypes
+        : [data.plan.creditType],
+  );
   let currency = $state(form?.currency || data.plan.currency);
 
   const creditTypeOptions = [
@@ -30,14 +39,19 @@
     { value: "gbp", label: "GBP" },
   ];
 
-  const creditTypeTriggerContent = $derived(
-    creditTypeOptions.find((t) => t.value === creditType)?.label ??
-      "Select type",
-  );
-
   const currencyTriggerContent = $derived(
     currencyOptions.find((c) => c.value === currency)?.label ?? "USD",
   );
+
+  function toggleCreditType(value: string, checked: boolean) {
+    if (checked) {
+      if (!selectedCreditTypes.includes(value)) {
+        selectedCreditTypes = [...selectedCreditTypes, value];
+      }
+    } else {
+      selectedCreditTypes = selectedCreditTypes.filter((v) => v !== value);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -89,7 +103,8 @@
     <Card.Header>
       <Card.Title>Credit Plan Details</Card.Title>
       <Card.Description>
-        Update the information below to modify the credit plan.
+        Update the information below to modify the credit plan. A plan can
+        grant credits across multiple categories at once.
       </Card.Description>
     </Card.Header>
     <Card.Content>
@@ -113,38 +128,49 @@
           </div>
         {/if}
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-2">
-            <Label for="name">Plan Name</Label>
-            <Input
-              id="name"
-              name="name"
-              placeholder="e.g., 100 Text Credits"
-              value={form?.name || data.plan.name}
-              required
-            />
-          </div>
+        <div class="space-y-2">
+          <Label for="name">Plan Name</Label>
+          <Input
+            id="name"
+            name="name"
+            placeholder="e.g., 100 Mixed Credits"
+            value={form?.name || data.plan.name}
+            required
+          />
+        </div>
 
-          <div class="space-y-2">
-            <Label for="creditType">Credit Type</Label>
-            <Select.Root
-              type="single"
-              name="creditType"
-              bind:value={creditType}
-              required
-            >
-              <Select.Trigger>
-                {creditTypeTriggerContent}
-              </Select.Trigger>
-              <Select.Content>
-                {#each creditTypeOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>
-                    {option.label}
-                  </Select.Item>
-                {/each}
-              </Select.Content>
-            </Select.Root>
+        <div class="space-y-2">
+          <Label>Credit Types</Label>
+          <p class="text-xs text-muted-foreground">
+            Select one or more. The credit amount below is granted to each
+            selected type when a user buys this plan.
+          </p>
+          <div class="grid grid-cols-2 gap-3 pt-1">
+            {#each creditTypeOptions as opt (opt.value)}
+              <label
+                class="flex items-center gap-2 p-2 rounded-md border cursor-pointer hover:bg-accent"
+              >
+                <input
+                  type="checkbox"
+                  name="creditTypes"
+                  value={opt.value}
+                  checked={selectedCreditTypes.includes(opt.value)}
+                  onchange={(e) =>
+                    toggleCreditType(
+                      opt.value,
+                      (e.currentTarget as HTMLInputElement).checked,
+                    )}
+                  class="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+                />
+                <span class="text-sm font-medium">{opt.label}</span>
+              </label>
+            {/each}
           </div>
+          {#if selectedCreditTypes.length === 0}
+            <p class="text-xs text-muted-foreground">
+              Select at least one credit type.
+            </p>
+          {/if}
         </div>
 
         <div class="space-y-2">
@@ -160,7 +186,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-2">
-            <Label for="creditAmount">Credit Amount</Label>
+            <Label for="creditAmount">Credit Amount (per type)</Label>
             <Input
               id="creditAmount"
               name="creditAmount"
@@ -246,7 +272,12 @@
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || data.isDemoMode}>
+              <Button
+                type="submit"
+                disabled={isSubmitting ||
+                  data.isDemoMode ||
+                  selectedCreditTypes.length === 0}
+              >
                 {isSubmitting
                   ? "Updating..."
                   : data.isDemoMode

@@ -576,9 +576,20 @@ export const creditPlans = pgTable("credit_plan", {
                 .$defaultFn(() => randomUUID()),
         name: text("name").notNull(),
         description: text("description"),
+        // Legacy single-type column. Kept for backwards compatibility with old
+        // rows and any code path that still reads it. New code should prefer
+        // `creditTypes` (the multi-select array) and fall back to this when the
+        // array is null.
         creditType: text("creditType", {
                 enum: ["text", "image", "video", "audio"]
         }).notNull(),
+        // New: a credit plan may grant credits across MULTIPLE categories at
+        // once (e.g. one purchase = N text credits + N image credits).
+        // Stored as a Postgres text[] of values from
+        // {"text","image","video","audio"}. Nullable so that historical rows
+        // created before this column existed continue to load — readers should
+        // treat a null/empty value as `[creditType]`.
+        creditTypes: text("creditTypes").array(),
         creditAmount: integer("creditAmount").notNull(),
         priceAmount: integer("priceAmount").notNull(),
         priceAmountBdt: integer("priceAmountBdt"),

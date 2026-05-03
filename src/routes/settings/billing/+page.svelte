@@ -748,7 +748,11 @@
               <div class="border rounded-lg p-4 flex flex-col gap-2">
                 <div class="flex items-center justify-between">
                   <h5 class="font-medium">{plan.name}</h5>
-                  <Badge variant="secondary">{creditTypeLabels[plan.creditType] || plan.creditType}</Badge>
+                  <div class="flex flex-wrap gap-1 justify-end">
+                    {#each (plan.creditTypes && plan.creditTypes.length > 0 ? plan.creditTypes : [plan.creditType]) as t}
+                      <Badge variant="secondary">{creditTypeLabels[t] || t}</Badge>
+                    {/each}
+                  </div>
                 </div>
                 {#if plan.description}
                   <p class="text-sm text-muted-foreground">{plan.description}</p>

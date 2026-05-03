@@ -125,15 +125,30 @@ export class CreditService {
                         throw new Error('Credit plan not found');
                 }
 
-                await db.insert(userCredits).values({
+                // A plan may grant credits across multiple categories at once
+                // (text + image + video, etc.). Fall back to the legacy single
+                // `creditType` column for old rows that pre-date `creditTypes`.
+                const grantedTypes = (plan.creditTypes && plan.creditTypes.length > 0
+                        ? plan.creditTypes
+                        : [plan.creditType]) as CreditType[];
+
+                // The same `creditAmount` is granted to every selected type, so
+                // a "100 credits" plan with [text, image] gives the buyer 100
+                // text credits AND 100 image credits.
+                const rows = grantedTypes.map((type, i) => ({
                         userId,
-                        creditType: plan.creditType,
+                        creditType: type,
                         creditAmount: plan.creditAmount,
                         purchasedAmount: plan.creditAmount,
                         creditPlanId: plan.id,
                         paymentProvider,
-                        transactionId,
-                });
+                        // Suffix the txn id per type so the unique-on-transactionId
+                        // duplicate guard above still holds across multiple rows
+                        // from one purchase.
+                        transactionId: grantedTypes.length > 1 ? `${transactionId}#${type}` : transactionId,
+                }));
+
+                await db.insert(userCredits).values(rows);
         }
 
         static async getActiveCreditPlans() {

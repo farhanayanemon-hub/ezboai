@@ -17,7 +17,13 @@
   let isSubmitting = $state(false);
   let showCreateForm = $state(false);
 
-  let creditType = $state("");
+  // Multi-select credit types — defaults to whatever the form sent back on
+  // validation failure, otherwise empty.
+  let selectedCreditTypes = $state<string[]>(
+    (form && "creditTypes" in form && Array.isArray((form as any).creditTypes)
+      ? ((form as any).creditTypes as string[])
+      : []),
+  );
   let currency = $state("usd");
 
   const creditTypeOptions = [
@@ -33,14 +39,19 @@
     { value: "gbp", label: "GBP" },
   ];
 
-  const creditTypeTriggerContent = $derived(
-    creditTypeOptions.find((t) => t.value === creditType)?.label ??
-      "Select type",
-  );
-
   const currencyTriggerContent = $derived(
     currencyOptions.find((c) => c.value === currency)?.label ?? "USD",
   );
+
+  function toggleCreditType(value: string, checked: boolean) {
+    if (checked) {
+      if (!selectedCreditTypes.includes(value)) {
+        selectedCreditTypes = [...selectedCreditTypes, value];
+      }
+    } else {
+      selectedCreditTypes = selectedCreditTypes.filter((v) => v !== value);
+    }
+  }
 
   function formatPrice(amountInCents: number, curr: string) {
     const amount = amountInCents / 100;
@@ -52,6 +63,13 @@
 
   function formatCreditType(type: string) {
     return type.charAt(0).toUpperCase() + type.slice(1);
+  }
+
+  // Show every type a plan grants — falls back to the legacy single-type
+  // column for older rows created before multi-select existed.
+  function planTypes(plan: { creditType: string; creditTypes: string[] | null }): string[] {
+    if (plan.creditTypes && plan.creditTypes.length > 0) return plan.creditTypes;
+    return [plan.creditType];
   }
 </script>
 
@@ -108,7 +126,8 @@
       <Card.Header>
         <Card.Title>New Credit Plan</Card.Title>
         <Card.Description>
-          Fill in the information below to create a new credit plan.
+          Fill in the information below. A plan can grant credits across
+          multiple categories at once — pick all that apply.
         </Card.Description>
       </Card.Header>
       <Card.Content>
@@ -132,38 +151,49 @@
             </div>
           {/if}
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <Label for="name">Plan Name</Label>
-              <Input
-                id="name"
-                name="name"
-                placeholder="e.g., 100 Text Credits"
-                value={form?.name || ""}
-                required
-              />
-            </div>
+          <div class="space-y-2">
+            <Label for="name">Plan Name</Label>
+            <Input
+              id="name"
+              name="name"
+              placeholder="e.g., 100 Mixed Credits"
+              value={form?.name || ""}
+              required
+            />
+          </div>
 
-            <div class="space-y-2">
-              <Label for="creditType">Credit Type</Label>
-              <Select.Root
-                type="single"
-                name="creditType"
-                bind:value={creditType}
-                required
-              >
-                <Select.Trigger>
-                  {creditTypeTriggerContent}
-                </Select.Trigger>
-                <Select.Content>
-                  {#each creditTypeOptions as option (option.value)}
-                    <Select.Item value={option.value} label={option.label}>
-                      {option.label}
-                    </Select.Item>
-                  {/each}
-                </Select.Content>
-              </Select.Root>
+          <div class="space-y-2">
+            <Label>Credit Types</Label>
+            <p class="text-xs text-muted-foreground">
+              Select one or more. The credit amount below is granted to each
+              selected type when a user buys this plan.
+            </p>
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              {#each creditTypeOptions as opt (opt.value)}
+                <label
+                  class="flex items-center gap-2 p-2 rounded-md border cursor-pointer hover:bg-accent"
+                >
+                  <input
+                    type="checkbox"
+                    name="creditTypes"
+                    value={opt.value}
+                    checked={selectedCreditTypes.includes(opt.value)}
+                    onchange={(e) =>
+                      toggleCreditType(
+                        opt.value,
+                        (e.currentTarget as HTMLInputElement).checked,
+                      )}
+                    class="h-4 w-4 rounded border-input text-primary focus:ring-2 focus:ring-ring"
+                  />
+                  <span class="text-sm font-medium">{opt.label}</span>
+                </label>
+              {/each}
             </div>
+            {#if selectedCreditTypes.length === 0}
+              <p class="text-xs text-muted-foreground">
+                Select at least one credit type.
+              </p>
+            {/if}
           </div>
 
           <div class="space-y-2">
@@ -179,7 +209,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
-              <Label for="creditAmount">Credit Amount</Label>
+              <Label for="creditAmount">Credit Amount (per type)</Label>
               <Input
                 id="creditAmount"
                 name="creditAmount"
@@ -253,7 +283,12 @@
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || data.isDemoMode}>
+            <Button
+              type="submit"
+              disabled={isSubmitting ||
+                data.isDemoMode ||
+                selectedCreditTypes.length === 0}
+            >
               {isSubmitting
                 ? "Creating..."
                 : data.isDemoMode
@@ -295,7 +330,7 @@
           <Table.Header>
             <Table.Row>
               <Table.Head>Name</Table.Head>
-              <Table.Head>Type</Table.Head>
+              <Table.Head>Types</Table.Head>
               <Table.Head>Credits</Table.Head>
               <Table.Head>Price</Table.Head>
               <Table.Head>Status</Table.Head>
@@ -309,9 +344,11 @@
                   {plan.name}
                 </Table.Cell>
                 <Table.Cell>
-                  <Badge variant="outline">
-                    {formatCreditType(plan.creditType)}
-                  </Badge>
+                  <div class="flex flex-wrap gap-1">
+                    {#each planTypes(plan) as t}
+                      <Badge variant="outline">{formatCreditType(t)}</Badge>
+                    {/each}
+                  </div>
                 </Table.Cell>
                 <Table.Cell class="font-mono">
                   {plan.creditAmount.toLocaleString()}
