@@ -34,7 +34,7 @@ const EZBO_MODEL_1_PRO = 'ezbo/ezbo-1.0-pro';
 const EZBOAI_MODELS: AIModelConfig[] = [
         {
                 name: EZBO_MODEL_1,
-                displayName: 'Ezbo 1.0',
+                displayName: 'XBrain 1.0',
                 provider: 'XBrainPro',
                 maxTokens: 8192,
                 supportsStreaming: true,
@@ -45,7 +45,7 @@ const EZBOAI_MODELS: AIModelConfig[] = [
         },
         {
                 name: EZBO_MODEL_1_PRO,
-                displayName: 'Ezbo 1.0 Pro',
+                displayName: 'XBrain 1.0 (Beta)',
                 provider: 'XBrainPro',
                 maxTokens: 8192,
                 supportsStreaming: true,
