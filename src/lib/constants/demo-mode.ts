@@ -7,7 +7,7 @@ import { env } from '$env/dynamic/private';
 
 // Demo mode allowed models (hand-picked subset similar to guest restrictions)
 export const DEMO_ALLOWED_MODELS = [
-        // EzboAI's own free model — listed first so it can be the default in demo
+        // XBrainPro's own free model — listed first so it can be the default in demo
         "ezbo/ezbo-1.0",
         "google/gemma-3-27b-it:free",
         "openai/gpt-oss-20b:free",

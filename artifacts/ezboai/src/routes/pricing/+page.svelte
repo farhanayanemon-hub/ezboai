@@ -252,7 +252,7 @@
 </script>
 
 <svelte:head>
-  <title>Pricing — EzboAI</title>
+  <title>Pricing — XBrainPro</title>
   <meta name="description" content="Choose the perfect plan for your AI needs. Multi-currency pricing — pay in BDT, USD, EUR, INR & more." />
 </svelte:head>
 

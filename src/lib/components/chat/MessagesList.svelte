@@ -298,7 +298,7 @@
       {:else}
         <!-- AI message - full width -->
         <Message from="assistant" class="max-w-full">
-          <!-- Model name above each AI response is intentionally hidden so the user only sees the EzboAI brand. The read-aloud controls below are kept and rendered only when audio is active. -->
+          <!-- Model name above each AI response is intentionally hidden so the user only sees the XBrainPro brand. The read-aloud controls below are kept and rendered only when audio is active. -->
           {#if (message.content || (!isLoading && !isStreamingContent)) && readAloudState.currentlyReadingMessageIndex === index && (readAloudState.isPlaying || readAloudState.isGenerating || readAloudState.audioElement)}
             <div class="text-sm font-medium mb-2 flex items-center">
               <span class="inline-flex items-center gap-1">

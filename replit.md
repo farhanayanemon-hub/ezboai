@@ -1,4 +1,4 @@
-# EzboAI
+# XBrainPro
 
 An AI platform built with SvelteKit that provides access to 65+ AI models for text generation, image generation, video generation, and multimodal chat.
 

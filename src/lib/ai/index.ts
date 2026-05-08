@@ -6,7 +6,7 @@ import { elevenlabsProvider } from './providers/elevenlabs.js';
 import { removeWebSearchSuffix } from '$lib/constants/web-search.js';
 
 // IMPORTANT: ezboaiProvider must be listed BEFORE openRouterProvider so that
-// getModelProvider() matches "ezbo/*" model names against the EzboAI router
+// getModelProvider() matches "ezbo/*" model names against the XBrainPro router
 // instead of falling through to OpenRouter.
 export const AI_PROVIDERS: AIProvider[] = [
         ezboaiProvider,

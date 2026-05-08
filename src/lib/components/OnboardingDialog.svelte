@@ -3,7 +3,7 @@
   // (or any logged-in user who hasn't set their name yet).
   //
   //   Step 1 — "What is your name?" (required)
-  //   Step 2 — "Want to personalize EzboAI?"
+  //   Step 2 — "Want to personalize XBrainPro?"
   //              Yes  -> /settings/ai-personalization
   //              Skip -> closes with a toast saying they can do it later
   //
@@ -63,7 +63,7 @@
 
   function skipPersonalization() {
     open = false;
-    toast.success("You can personalize EzboAI any time from Settings.");
+    toast.success("You can personalize XBrainPro any time from Settings.");
   }
 </script>
 
@@ -97,7 +97,7 @@
           </svg>
         </div>
         <Dialog.Header class="space-y-2">
-          <Dialog.Title class="text-xl">Welcome to EzboAI</Dialog.Title>
+          <Dialog.Title class="text-xl">Welcome to XBrainPro</Dialog.Title>
           <Dialog.Description>What is your name?</Dialog.Description>
         </Dialog.Header>
         <form onsubmit={submitName} class="w-full space-y-3 pt-1">
@@ -139,7 +139,7 @@
             Nice to meet you{savedName ? `, ${savedName}` : ""}!
           </Dialog.Title>
           <Dialog.Description>
-            Want to personalize EzboAI so it answers in a way that fits you best?
+            Want to personalize XBrainPro so it answers in a way that fits you best?
             You can tell it about your profession and how you'd like it to talk
             to you.
           </Dialog.Description>

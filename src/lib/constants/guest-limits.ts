@@ -9,7 +9,7 @@
 // guest causes a 403 with type "guest_limit_exceeded").
 export const GUEST_MESSAGE_LIMIT = 0;
 export const GUEST_ALLOWED_MODELS = [
-    // EzboAI's own free model — listed first so it becomes the default for guests
+    // XBrainPro's own free model — listed first so it becomes the default for guests
     "ezbo/ezbo-1.0",
     "google/gemma-3-27b-it:free",
     "openai/gpt-oss-20b:free",

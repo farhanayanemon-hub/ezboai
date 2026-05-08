@@ -546,7 +546,7 @@
          branded sign-up / log-in popup as soon as a guest tries to send. -->
     {#if !userId}
       <div class="mb-2 px-2 text-sm text-muted-foreground flex items-center justify-between">
-        <span>Sign up to start chatting with EzboAI.</span>
+        <span>Sign up to start chatting with XBrainPro.</span>
         <Button
           variant="ghost"
           size="sm"
@@ -988,7 +988,7 @@
       <Dialog.Header class="space-y-2">
         <Dialog.Title class="text-xl">Create a free account to chat</Dialog.Title>
         <Dialog.Description>
-          EzboAI is free to use, but you need an account so we can save your
+          XBrainPro is free to use, but you need an account so we can save your
           conversations and keep your chats secure. It only takes a few seconds.
         </Dialog.Description>
       </Dialog.Header>
