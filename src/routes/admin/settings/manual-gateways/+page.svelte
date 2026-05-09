@@ -9,7 +9,7 @@
   let { data, form } = $props();
 </script>
 
-<div class="container mx-auto p-6 space-y-6 max-w-5xl">
+<div class="space-y-6 min-w-0">
   <div>
     <h1 class="text-3xl font-bold">Manual Payment Gateways</h1>
     <p class="text-muted-foreground">
@@ -66,7 +66,7 @@
                     <span class="text-3xl">{g.icon}</span>
                   {/if}
                 </div>
-                <div class="flex-1 min-w-[200px] space-y-1">
+                <div class="flex-1 min-w-0 space-y-1">
                   <Input
                     type="file"
                     name="iconFile"
@@ -84,7 +84,7 @@
               </div>
             </div>
 
-            <div class="grid md:grid-cols-2 gap-4">
+            <div class="grid lg:grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for={'dn-'+g.id}>Display Name (shown to users)</Label>
                 <Input id={'dn-'+g.id} name="displayName" value={g.displayName} placeholder="e.g. Pay with PayPal" />

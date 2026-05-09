@@ -140,10 +140,10 @@
       </div>
     </div>
 
-    <div class="grid md:grid-cols-[240px_1fr]">
+    <div class="grid lg:grid-cols-[220px_minmax(0,1fr)] gap-4">
       <!-- Settings Sidebar -->
       <Card.Root class="h-fit py-0 mb-4 bg-transparent border-none shadow-none">
-        <Card.Content class="p-0 mr-8">
+        <Card.Content class="p-0 lg:mr-4">
           <nav class="space-y-2">
             {#each settingsNav as navItem}
               {@const Icon = navItem.icon}
@@ -163,7 +163,7 @@
       </Card.Root>
 
       <!-- Main Content Area -->
-      <div>
+      <div class="min-w-0">
         {@render children()}
       </div>
     </div>
