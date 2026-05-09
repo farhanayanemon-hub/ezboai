@@ -49,6 +49,12 @@
       icon: CreditCardIcon,
     },
     {
+      id: "manual-gateways",
+      label: "Manual Gateways",
+      path: "/admin/settings/manual-gateways",
+      icon: WalletIcon,
+    },
+    {
       id: "plans",
       label: "Pricing Plans",
       path: "/admin/settings/plans",

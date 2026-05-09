@@ -14,6 +14,7 @@
     GemIcon,
     ShieldIcon,
     ArrowRightIcon,
+    WalletIcon,
   } from "$lib/icons/index.js";
 
   const settingsCategories = [
@@ -39,6 +40,14 @@
         "Configure Stripe API keys, webhooks, and payment processing",
       icon: CreditCardIcon,
       path: "/admin/settings/payment-methods",
+    },
+    {
+      id: "manual-gateways",
+      title: "Manual Gateways",
+      description:
+        "Enable PayPal, Wise, Skrill, Binance and Bybit for manual payments — accept orders without Stripe",
+      icon: WalletIcon,
+      path: "/admin/settings/manual-gateways",
     },
     {
       id: "oauth-providers",
