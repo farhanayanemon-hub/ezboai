@@ -485,6 +485,16 @@
               </ul>
             </div>
 
+            {#if data.manualGatewaysEnabled && plan.tier !== "free" && !isCurrentPlan(plan.tier)}
+              <button
+                type="button"
+                class="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mb-3 cursor-pointer"
+                onclick={() => goto(`/checkout/manual?planId=${plan.id}`)}
+              >
+                Or pay manually (PayPal, Wise, Skrill, Binance, Bybit)
+              </button>
+            {/if}
+
             {#if isDowngrade(plan.tier) && plan.tier !== "free"}
               <p class="text-[11px] text-muted-foreground text-center mt-4 pt-4 border-t border-border/50">
                 Downgrade takes effect at end of billing period

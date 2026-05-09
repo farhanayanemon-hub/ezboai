@@ -5,6 +5,7 @@ import { db, users } from '$lib/server/db/index.js';
 import { eq } from 'drizzle-orm';
 import { getActivePaymentProvider } from '$lib/server/settings-store.js';
 import { adminSettingsService } from '$lib/server/admin-settings.js';
+import { getEnabledGateways } from '$lib/server/manual-gateways.js';
 import { isCurrencyCode, DEFAULT_CURRENCY, getEffectiveRates, type CurrencyCode, type CurrencyRates } from '$lib/utils/currencies.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -13,6 +14,7 @@ export const load: PageServerLoad = async ({ locals }) => {
         try {
                 const plans = await getPricingPlans();
                 const activePaymentProvider = await getActivePaymentProvider();
+                const manualGatewaysEnabled = (await getEnabledGateways()).length > 0;
 
                 // Default display currency + FX rate overrides from admin settings (general category)
                 let defaultCurrency: CurrencyCode = DEFAULT_CURRENCY;
@@ -56,6 +58,7 @@ export const load: PageServerLoad = async ({ locals }) => {
                         user: session?.user || null,
                         userData,
                         activePaymentProvider,
+                        manualGatewaysEnabled,
                         defaultCurrency,
                         currencyRates,
                 };
@@ -67,6 +70,7 @@ export const load: PageServerLoad = async ({ locals }) => {
                         user: session?.user || null,
                         userData: null,
                         activePaymentProvider: 'stripe' as const,
+                        manualGatewaysEnabled: false,
                         defaultCurrency: DEFAULT_CURRENCY,
                         currencyRates: getEffectiveRates({}),
                 };
