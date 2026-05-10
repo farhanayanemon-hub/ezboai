@@ -230,21 +230,35 @@
           </div>
         {/if}
 
-        <div class="grid grid-cols-1 gap-4">
+        <!-- Dual price entry: USD ($) for non-BDT users (manual gateways), BDT (৳) for BDT users (Opaybd) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-2">
-            <Label for="priceAmount">Price (in cents)</Label>
+            <Label for="priceAmount">Price USD ($)</Label>
             <Input
               id="priceAmount"
               name="priceAmount"
               type="number"
-              placeholder="999"
+              step="0.01"
+              placeholder="9.99"
               min="0"
               value={form?.priceAmount ?? priceWholeUnits}
               required
             />
-            <p class="text-xs text-muted-foreground">
-              Enter price in cents (e.g., 999 = $9.99)
-            </p>
+            <p class="text-xs text-muted-foreground">Direct USD amount. Shown to non-BDT users.</p>
+          </div>
+          <div class="space-y-2">
+            <Label for="priceAmountBdt">Price BDT (৳)</Label>
+            <Input
+              id="priceAmountBdt"
+              name="priceAmountBdt"
+              type="number"
+              step="1"
+              placeholder="1100"
+              min="0"
+              value={form?.priceAmountBdt ?? priceBdtWholeUnits}
+              required
+            />
+            <p class="text-xs text-muted-foreground">Direct BDT amount. Shown to BDT users via Opaybd.</p>
           </div>
         </div>
 
