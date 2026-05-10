@@ -68,6 +68,7 @@
 </svelte:head>
 
 <div class="space-y-6">
+          <input type="hidden" name="currency" value="usd" />
   <!-- Demo Mode Banner -->
   {#if data.isDemoMode}
     <div
@@ -119,11 +120,9 @@
       <form
         method="POST"
         action="?/update"
-        use:enhance={() =>
-{
+        use:enhance={() => {
           isSubmitting = true;
-          return async ({ update }) =>
-      <input type="hidden" name="currency" value="usd" /> {
+          return async ({ update }) => {
             await update();
             isSubmitting = false;
           };
