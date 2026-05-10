@@ -1,6 +1,6 @@
 <script lang="ts">
   const showPrimaryCta = $derived(
-    data.activePaymentProvider !== "opaybd" || data.userCurrency === "BDT",
+    data.activePaymentProvider !== "opaybd" || data.userCountry === "BD",
   );
 
   // Effective primary gateway per user currency: BDT → opaybd, others → manual
@@ -493,7 +493,7 @@
               </ul>
             </div>
 
-            {#if data.manualGatewaysEnabled && plan.tier !== "free" && !isCurrentPlan(plan.tier) && data.userCurrency !== "BDT"}
+            {#if data.manualGatewaysEnabled && plan.tier !== "free" && !isCurrentPlan(plan.tier)}
               <button
                 type="button"
                 class="w-full text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 mb-3 cursor-pointer"

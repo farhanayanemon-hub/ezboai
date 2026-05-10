@@ -7,6 +7,7 @@ import { getActivePaymentProvider } from '$lib/server/settings-store.js';
 import { adminSettingsService } from '$lib/server/admin-settings.js';
 import { getEnabledGateways } from '$lib/server/manual-gateways.js';
 import { isCurrencyCode, DEFAULT_CURRENCY, getEffectiveRates, type CurrencyCode, type CurrencyRates } from '$lib/utils/currencies.js';
+import geoip from 'geoip-lite';
 
 export const load: PageServerLoad = async ({ locals, request }) => {
         const session = await locals.auth();
@@ -44,12 +45,20 @@ export const load: PageServerLoad = async ({ locals, request }) => {
                 }
                 const currencyRates = getEffectiveRates(rateOverrides);
 
-                // Detect user currency from Accept-Language header.
-                // Bangladesh locales (bn, bn-BD) → BDT, otherwise admin's defaultCurrency.
-                const acceptLang = (request.headers.get('accept-language') || '').toLowerCase();
-                const userCurrency: CurrencyCode = (acceptLang.startsWith('bn') || acceptLang.includes('-bd'))
-                    ? 'BDT'
-                    : defaultCurrency;
+                // Detect user country from IP (X-Real-IP or X-Forwarded-For from nginx).
+                // BD IP → BDT price + ALL payment methods; everyone else → USD + manual gateways only.
+                const xff = request.headers.get('x-forwarded-for') || '';
+                const realIp = request.headers.get('x-real-ip') || xff.split(',')[0].trim();
+                let userCountry = '';
+                if (realIp) {
+                    try {
+                        const lookup = geoip.lookup(realIp);
+                        if (lookup?.country) userCountry = lookup.country;
+                    } catch (e) {
+                        console.warn('geoip lookup failed for', realIp, e);
+                    }
+                }
+                const userCurrency: CurrencyCode = userCountry === 'BD' ? 'BDT' : 'USD';
 
                 let currentSubscription = null;
                 let userData = null;
@@ -69,6 +78,7 @@ export const load: PageServerLoad = async ({ locals, request }) => {
                         defaultCurrency,
                         currencyRates,
                         userCurrency,
+                        userCountry,
                 };
         } catch (error) {
                 console.error('Error loading pricing data:', error);
@@ -81,7 +91,8 @@ export const load: PageServerLoad = async ({ locals, request }) => {
                         manualGatewaysEnabled: false,
                         defaultCurrency: DEFAULT_CURRENCY,
                         currencyRates: getEffectiveRates({}),
-                        userCurrency: DEFAULT_CURRENCY,
+                        userCurrency: 'USD' as CurrencyCode,
+                        userCountry: '',
                 };
         }
 };

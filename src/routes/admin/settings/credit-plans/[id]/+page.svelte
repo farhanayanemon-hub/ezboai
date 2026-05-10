@@ -128,7 +128,8 @@
       <form
         method="POST"
         action="?/update"
-        use:enhance={() => {
+        use:enhance={() =>
+    <input type="hidden" name="currency" value="usd" /> {
           isSubmitting = true;
           return async ({ update }) => {
             await update();
@@ -262,25 +263,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-2">
-            <Label for="currency">Currency</Label>
-            <Select.Root type="single" name="currency" bind:value={currency}>
-              <Select.Trigger>
-                {currencyTriggerContent}
-              </Select.Trigger>
-              <Select.Content>
-                {#each currencyOptions as option (option.value)}
-                  <Select.Item value={option.value} label={option.label}>
-                    {option.label}
-                  </Select.Item>
-                {/each}
-              </Select.Content>
-            </Select.Root>
-          </div>
-        </div>
-
-        <div class="space-y-2">
+                <div class="space-y-2">
           <div class="flex items-center space-x-2">
             <Switch
               id="isActive"
