@@ -120,9 +120,10 @@
         method="POST"
         action="?/update"
         use:enhance={() =>
-    <input type="hidden" name="currency" value="usd" /> {
+{
           isSubmitting = true;
-          return async ({ update }) => {
+          return async ({ update }) =>
+      <input type="hidden" name="currency" value="usd" /> {
             await update();
             isSubmitting = false;
           };
