@@ -110,7 +110,7 @@
 </script>
 
 <!-- Main content area -->
-<main class="flex flex-col h-full w-full">
+<main class="flex flex-col h-full w-full min-w-0 overflow-hidden">
   <!-- Main chat area with auto-scroll management -->
   <Conversation class="flex-1 min-h-0">
     <ConversationContent

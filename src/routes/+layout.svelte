@@ -96,7 +96,7 @@
 {:else if isHeaderOnlyPage}
   <!-- Pages with header but no sidebar (image-video) -->
   <Tooltip.Provider>
-    <div class="flex flex-col h-screen w-full">
+    <div class="flex flex-col h-screen w-full min-w-0 overflow-hidden">
       <Header {data} showSidebarTrigger={false} />
       <div class="flex-1 overflow-auto">
         {@render children()}
@@ -110,7 +110,7 @@
     <ChatSidebar {chatState} />
 
     <!-- Main content area with header -->
-    <div class="flex flex-col h-screen w-full">
+    <div class="flex flex-col h-screen w-full min-w-0 overflow-hidden">
       <!-- Global Header -->
       <Header {data} />
 
