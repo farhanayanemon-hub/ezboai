@@ -132,21 +132,27 @@ export class CreditService {
                         ? plan.creditTypes
                         : [plan.creditType]) as CreditType[];
 
-                // The same `creditAmount` is granted to every selected type, so
-                // a "100 credits" plan with [text, image] gives the buyer 100
-                // text credits AND 100 image credits.
-                const rows = grantedTypes.map((type, i) => ({
-                        userId,
-                        creditType: type,
-                        creditAmount: plan.creditAmount,
-                        purchasedAmount: plan.creditAmount,
-                        creditPlanId: plan.id,
-                        paymentProvider,
-                        // Suffix the txn id per type so the unique-on-transactionId
-                        // duplicate guard above still holds across multiple rows
-                        // from one purchase.
-                        transactionId: grantedTypes.length > 1 ? `${transactionId}#${type}` : transactionId,
-                }));
+                // Per-type amounts when the plan stores `creditAmounts` (e.g.
+                // {text: 1000, image: 50, video: 10}). Falls back to the legacy
+                // single `creditAmount` granted equally to every selected type.
+                const perType = (plan as any).creditAmounts as Record<string, number> | null;
+                const rows = grantedTypes.map((type) => {
+                        const amount = perType && typeof perType[type] === 'number' && perType[type] > 0
+                                ? perType[type]
+                                : plan.creditAmount;
+                        return {
+                                userId,
+                                creditType: type,
+                                creditAmount: amount,
+                                purchasedAmount: amount,
+                                creditPlanId: plan.id,
+                                paymentProvider,
+                                // Suffix the txn id per type so the unique-on-transactionId
+                                // duplicate guard above still holds across multiple rows
+                                // from one purchase.
+                                transactionId: grantedTypes.length > 1 ? `${transactionId}#${type}` : transactionId,
+                        };
+                });
 
                 await db.insert(userCredits).values(rows);
         }

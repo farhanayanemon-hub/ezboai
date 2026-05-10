@@ -16,6 +16,21 @@ function parseCreditTypes(data: FormData): CreditTypeValue[] {
   return filtered
 }
 
+
+function parseCreditAmounts(data: FormData, types: CreditTypeValue[]): { amounts: Record<string, number>; max: number; error?: string } {
+  const amounts: Record<string, number> = {};
+  let max = 0;
+  for (const t of types) {
+    const raw = data.get(`creditAmount_${t}`)?.toString();
+    if (!raw) return { amounts, max, error: `Credit amount for "${t}" is required` };
+    const n = parseInt(raw);
+    if (isNaN(n) || n <= 0) return { amounts, max, error: `Credit amount for "${t}" must be a positive number` };
+    amounts[t] = n;
+    if (n > max) max = n;
+  }
+  return { amounts, max };
+}
+
 export const load: PageServerLoad = async () => {
   try {
     const allPlans = await db
@@ -47,10 +62,14 @@ export const actions: Actions = {
     const name = data.get('name')?.toString()
     const description = data.get('description')?.toString() || null
     const creditTypesArr = parseCreditTypes(data)
-    const creditAmount = data.get('creditAmount')?.toString()
     const priceAmount = data.get('priceAmount')?.toString()
     const priceAmountBdt = data.get('priceAmountBdt')?.toString()
     const currency = data.get('currency')?.toString() || 'usd'
+
+    // Collect per-type amounts as { text: 100, image: 50, ... } so each
+    // selected category can have its own credit count for one purchase.
+    const { amounts: creditAmountsMap, max: creditAmountMax, error: amtErr } =
+      parseCreditAmounts(data, creditTypesArr)
 
     const failBack = (status: number, error: string) =>
       fail(status, {
@@ -58,20 +77,18 @@ export const actions: Actions = {
         name,
         description,
         creditTypes: creditTypesArr,
-        creditAmount,
+        creditAmounts: creditAmountsMap,
         priceAmount,
         priceAmountBdt,
         currency,
       })
 
-    if (!name || creditTypesArr.length === 0 || !creditAmount || !priceAmount) {
-      return failBack(400, 'Name, at least one credit type, credit amount and price are required')
+    if (!name || creditTypesArr.length === 0 || !priceAmount) {
+      return failBack(400, 'Name, at least one credit type and price are required')
     }
 
-    const creditAmountNum = parseInt(creditAmount)
-    if (isNaN(creditAmountNum) || creditAmountNum <= 0) {
-      return failBack(400, 'Credit amount must be a positive number')
-    }
+    if (amtErr) return failBack(400, amtErr)
+    const creditAmountNum = creditAmountMax  // legacy column = max per-type
 
     const priceAmountNum = parseInt(priceAmount)
     if (isNaN(priceAmountNum) || priceAmountNum < 0) {
@@ -91,6 +108,7 @@ export const actions: Actions = {
         // type so any code path still reading `creditType` keeps working.
         creditType: creditTypesArr[0],
         creditTypes: creditTypesArr,
+        creditAmounts: creditAmountsMap,
         creditAmount: creditAmountNum,
         priceAmount: priceAmountNum,
         priceAmountBdt: priceAmountBdtNum,

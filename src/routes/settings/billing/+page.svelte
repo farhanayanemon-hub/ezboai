@@ -759,7 +759,13 @@
                 {/if}
                 <div class="flex items-center justify-between mt-auto pt-2">
                   <span class="text-lg font-semibold">{formatCreditPrice(plan)}</span>
-                  <span class="text-sm text-muted-foreground">{plan.creditAmount} credits</span>
+                  <span class="text-sm text-muted-foreground">
+                    {#if plan.creditAmounts && typeof plan.creditAmounts === "object" && Object.keys(plan.creditAmounts).length > 0}
+                      {Object.entries(plan.creditAmounts as Record<string, number>).map(([t, n]) => `${n} ${t}`).join(" + ")}
+                    {:else}
+                      {plan.creditAmount} credits
+                    {/if}
+                  </span>
                 </div>
                 <Button
                   size="sm"

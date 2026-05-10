@@ -24,6 +24,24 @@
         ? data.plan.creditTypes
         : [data.plan.creditType],
   );
+  // Per-type credit amount map. Initialize from form-rebound, or stored
+  // creditAmounts, or fallback to legacy single creditAmount for every type.
+  function initialAmounts(): Record<string, string> {
+    if (form && "creditAmounts" in form && (form as any).creditAmounts && typeof (form as any).creditAmounts === "object") {
+      return Object.fromEntries(
+        Object.entries((form as any).creditAmounts as Record<string, number>).map(([k, v]) => [k, String(v)]),
+      );
+    }
+    const stored = (data.plan as any).creditAmounts as Record<string, number> | null | undefined;
+    if (stored && typeof stored === "object" && Object.keys(stored).length > 0) {
+      return Object.fromEntries(Object.entries(stored).map(([k, v]) => [k, String(v)]));
+    }
+    // Legacy: same amount for every selected type
+    const legacy: Record<string, string> = {};
+    for (const t of selectedCreditTypes) legacy[t] = String(data.plan.creditAmount);
+    return legacy;
+  }
+  let creditAmountsMap = $state<Record<string, string>>(initialAmounts());
   let currency = $state(form?.currency || data.plan.currency);
 
   const creditTypeOptions = [
@@ -184,20 +202,36 @@
           />
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-2">
-            <Label for="creditAmount">Credit Amount (per type)</Label>
-            <Input
-              id="creditAmount"
-              name="creditAmount"
-              type="number"
-              placeholder="100"
-              min="1"
-              value={form?.creditAmount || data.plan.creditAmount}
-              required
-            />
+        {#if selectedCreditTypes.length > 0}
+          <div class="space-y-3 p-3 rounded-md border bg-muted/30">
+            <div>
+              <Label class="text-sm font-semibold">Credit Amount per Type</Label>
+              <p class="text-xs text-muted-foreground">
+                Set how many credits each selected category gets when a user buys this plan.
+              </p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {#each creditTypeOptions.filter((o) => selectedCreditTypes.includes(o.value)) as opt (opt.value)}
+                <div class="space-y-1.5">
+                  <Label for={"ca-"+opt.value} class="text-xs">
+                    {opt.label} credits
+                  </Label>
+                  <Input
+                    id={"ca-"+opt.value}
+                    name={"creditAmount_"+opt.value}
+                    type="number"
+                    placeholder="100"
+                    min="1"
+                    bind:value={creditAmountsMap[opt.value]}
+                    required
+                  />
+                </div>
+              {/each}
+            </div>
           </div>
+        {/if}
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-2">
             <Label for="priceAmount">Price (in cents)</Label>
             <Input

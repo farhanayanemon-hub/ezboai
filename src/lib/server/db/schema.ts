@@ -591,6 +591,11 @@ export const creditPlans = pgTable("credit_plan", {
         // created before this column existed continue to load — readers should
         // treat a null/empty value as `[creditType]`.
         creditTypes: text("creditTypes").array(),
+        // Per-type credit amounts when a plan grants different amounts per
+        // category (e.g. {text: 1000, image: 50, video: 10}). When null, the
+        // legacy `creditAmount` is granted to every selected type. New rows
+        // should always populate this; legacy reader fallback kept for safety.
+        creditAmounts: json("creditAmounts").$type<Record<string, number>>(),
         creditAmount: integer("creditAmount").notNull(),
         priceAmount: integer("priceAmount").notNull(),
         priceAmountBdt: integer("priceAmountBdt"),
