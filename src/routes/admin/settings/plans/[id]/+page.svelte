@@ -119,8 +119,7 @@
       <form
         method="POST"
         action="?/update"
-        use:enhance={() =>
-        <input type="hidden" name="currency" value="usd" /> {
+        use:enhance={() => {
           isSubmitting = true;
           return async ({ update }) => {
             await update();
@@ -129,6 +128,7 @@
         }}
         class="space-y-6"
       >
+        <input type="hidden" name="currency" value="usd" />
         <!-- Error Message -->
         {#if form?.error}
           <div
