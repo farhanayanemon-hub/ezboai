@@ -25,6 +25,14 @@
     form?.billingInterval || data.plan.billingInterval
   );
 
+  // Derive whole-unit prices from cents/paisa stored in DB
+  const priceWholeUnits = $derived(
+    data.plan.priceAmount != null ? Number(data.plan.priceAmount) / 100 : ''
+  );
+  const priceBdtWholeUnits = $derived(
+    data.plan.priceAmountBdt != null ? Number(data.plan.priceAmountBdt) / 100 : ''
+  );
+
   // Select display values
   const tierOptions = [
     { value: "free", label: "Free" },
