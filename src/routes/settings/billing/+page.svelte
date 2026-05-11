@@ -804,6 +804,12 @@
                     Buy Credits
                   {/if}
                 </Button>
+                {#if (billingData as any).manualGatewaysEnabled}
+                  <a
+                    href={`/checkout/manual?creditPlanId=${plan.id}`}
+                    class="block mt-2 text-center text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >Or pay manually (PayPal, Wise, Skrill, Binance, Bybit)</a>
+                {/if}
               </div>
             {/each}
           </div>
