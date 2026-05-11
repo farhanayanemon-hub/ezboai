@@ -541,7 +541,7 @@
   }
 </script>
 
-<div class="flex-shrink-0 p-4 w-full flex justify-center">
+<div class="flex-shrink-0 p-4 w-full flex justify-center sticky bottom-0 z-30 bg-background border-t border-border md:static md:bg-transparent md:border-t-0 pb-[max(env(safe-area-inset-bottom),1rem)] md:pb-4">
   <div class="w-full max-w-3xl">
     <!-- Guest hint: a single inline call-to-action above the input. The
          actual gating happens in handlePromptSubmit, which opens the
