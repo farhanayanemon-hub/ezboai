@@ -38,12 +38,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				return json({ error: 'Opaybd is not configured' }, { status: 500 });
 			}
 
+			const origin = url.origin;
 			const result = await OpayService.createCreditPayment({
 				userId: session.user.id,
 				creditPlanId: plan.id,
 				amount: plan.priceAmountBdt || plan.priceAmount,
 				currency: plan.priceAmountBdt ? 'BDT' : plan.currency.toUpperCase(),
 				description: `${plan.creditAmount} ${plan.creditType} credits - ${plan.name}`,
+				successUrl: `${origin}/api/opaybd/callback`,
+				cancelUrl: `${origin}/settings/billing?canceled=true&provider=opaybd`,
+				webhookUrl: `${origin}/api/opaybd/webhook`,
 			});
 
 			return json({
