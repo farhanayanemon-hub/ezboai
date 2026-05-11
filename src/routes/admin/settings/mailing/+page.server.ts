@@ -22,7 +22,8 @@ export const load: PageServerLoad = async () => {
         smtpUser: settings.smtp_user || "",
         smtpPass: settings.smtp_pass || "",
         fromEmail: settings.from_email || "",
-        fromName: settings.from_name || ""
+        fromName: settings.from_name || "",
+        adminNotificationEmail: (settings as any).admin_notification_email || ""
       },
       otpVerificationEnabled: otpEnabled,
       templates: templates.map(t => ({
@@ -45,7 +46,8 @@ export const load: PageServerLoad = async () => {
         smtpUser: "",
         smtpPass: "",
         fromEmail: "",
-        fromName: ""
+        fromName: "",
+        adminNotificationEmail: ""
       },
       otpVerificationEnabled: false,
       templates: [],
@@ -69,6 +71,11 @@ export const actions: Actions = {
     const smtpPass = data.get('smtpPass')?.toString()
     const fromEmail = data.get('fromEmail')?.toString()
     const fromName = data.get('fromName')?.toString()
+    const adminNotificationEmail = data.get('adminNotificationEmail')?.toString()
+
+    if (adminNotificationEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminNotificationEmail)) {
+      return fail(400, { error: 'Admin notification email must be a valid email address' })
+    }
 
     if (!smtpHost || !smtpUser || !smtpPass) {
       return fail(400, { error: 'SMTP Host, Username, and Password are required' })
@@ -113,6 +120,10 @@ export const actions: Actions = {
       }
       if (shouldSaveValue(fromName, currentSettings.from_name)) {
         settingsToSave.push({ key: 'from_name', value: fromName!.trim(), category: 'mailing', description: 'From display name' });
+      }
+      // admin_notification_email — allow clearing (set to empty)
+      if ((adminNotificationEmail || '').trim() !== ((currentSettings as any).admin_notification_email || '').trim()) {
+        settingsToSave.push({ key: 'admin_notification_email', value: (adminNotificationEmail || '').trim(), category: 'mailing', description: 'Email address that receives order notifications' });
       }
 
       if (settingsToSave.length > 0) {

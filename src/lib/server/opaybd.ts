@@ -432,6 +432,26 @@ export class OpayService {
 
                 console.log('Successfully processed Opaybd payment for user:', metadata.userId);
 
+                // Notify admin (non-blocking)
+                try {
+                        const { sendAdminOrderNotification } = await import('./email.js');
+                        const [u] = await db.select().from(users).where(eq(users.id, metadata.userId)).limit(1);
+                        void sendAdminOrderNotification({
+                                source: 'opaybd-subscription',
+                                orderType: 'subscription',
+                                userId: metadata.userId,
+                                userEmail: u?.email || null,
+                                userName: u?.name || null,
+                                planName: metadata.planTier,
+                                amount: amountCents / 100,
+                                currency: 'bdt',
+                                gateway: 'opaybd',
+                                txnReference: params.transactionId,
+                                orderId: null,
+                                status: 'completed',
+                        });
+                } catch (e) { console.error('[Opaybd] admin notify failed:', e); }
+
                 return {
                         planTier: metadata.planTier,
                         userId: metadata.userId,
@@ -466,6 +486,28 @@ export class OpayService {
                 } catch (error) {
                         console.error('Error processing Opaybd credit purchase:', error);
                 }
+
+                // Notify admin (non-blocking)
+                try {
+                        const { sendAdminOrderNotification } = await import('./email.js');
+                        const { creditPlans } = await import('./db/schema.js');
+                        const [u] = await db.select().from(users).where(eq(users.id, meta.userId)).limit(1);
+                        const [cp] = await db.select().from(creditPlans).where(eq(creditPlans.id, meta.creditPlanId)).limit(1);
+                        void sendAdminOrderNotification({
+                                source: 'opaybd-credit',
+                                orderType: 'credit',
+                                userId: meta.userId,
+                                userEmail: u?.email || null,
+                                userName: u?.name || null,
+                                planName: cp?.name || 'Credit pack',
+                                amount: cp ? cp.priceAmount / 100 : 0,
+                                currency: cp?.currency || 'bdt',
+                                gateway: 'opaybd',
+                                txnReference: transactionId,
+                                orderId: null,
+                                status: 'completed',
+                        });
+                } catch (e) { console.error('[Opaybd] admin notify (credit) failed:', e); }
 
                 return { planTier: 'credit_purchase', userId: meta.userId, alreadyProcessed: false };
         }

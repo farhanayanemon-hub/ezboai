@@ -5,6 +5,7 @@ import { users, paymentHistory, usageTracking } from '$lib/server/db/schema.js';
 import { eq, desc, and } from 'drizzle-orm';
 import { CreditService } from '$lib/server/credit-service.js';
 import { getActivePaymentProvider } from '$lib/server/settings-store.js';
+import { getEnabledGateways } from '$lib/server/manual-gateways.js';
 
 export const load: PageServerLoad = async ({ parent }) => {
         // Get session and user data from parent settings layout
@@ -19,6 +20,7 @@ export const load: PageServerLoad = async ({ parent }) => {
                         userCredits: { text: 0, image: 0, video: 0, audio: 0 },
                         creditPlans: [],
                         activePaymentProvider: 'stripe' as const,
+                        manualGatewaysEnabled: false,
                 };
         }
 
@@ -32,11 +34,13 @@ export const load: PageServerLoad = async ({ parent }) => {
                 // Get active subscription with plan details (will be null for free users)
                 const subscriptionData = await StripeService.getActiveSubscription(session.user.id);
 
-                const [userCreditBalances, activeCreditPlans, activeProvider] = await Promise.all([
+                const [userCreditBalances, activeCreditPlans, activeProvider, enabledGateways] = await Promise.all([
                         CreditService.getUserCredits(session.user.id),
                         CreditService.getActiveCreditPlans(),
-                        getActivePaymentProvider()
+                        getActivePaymentProvider(),
+                        getEnabledGateways()
                 ]);
+                const manualGatewaysEnabled = enabledGateways.length > 0;
 
                 // Get payment history (last 10 payments)
                 const payments = await db

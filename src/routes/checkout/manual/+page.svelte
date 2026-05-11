@@ -10,6 +10,7 @@
 
   let { data } = $props();
   const { plan, gateways } = data;
+  const orderType: 'subscription' | 'credit' = (data as any).orderType || 'subscription';
 
   let selectedId = $state<string>(gateways[0]?.id || '');
   let txnReference = $state('');
@@ -40,7 +41,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: plan.id,
+          ...(orderType === 'credit' ? { creditPlanId: plan.id } : { planId: plan.id }),
           gateway: selected.id,
           txnReference: txnReference.trim(),
           senderInfo: senderInfo.trim() || null,
@@ -73,7 +74,12 @@
 
     <h1 class="text-2xl sm:text-3xl font-bold mb-2">Manual Checkout</h1>
     <p class="text-muted-foreground mb-6 text-sm">
-      Subscribe to <strong class="text-foreground">{plan.name}</strong> — ${priceUsd} {plan.currency.toUpperCase()} / {plan.billingInterval}
+      {#if orderType === 'credit'}
+        Buy <strong class="text-foreground">{plan.name}</strong> — ${priceUsd} {plan.currency.toUpperCase()}
+        {#if (plan as any).creditAmount}<span class="ml-1">(+{(plan as any).creditAmount} credits)</span>{/if}
+      {:else}
+        Subscribe to <strong class="text-foreground">{plan.name}</strong> — ${priceUsd} {plan.currency.toUpperCase()} / {plan.billingInterval}
+      {/if}
     </p>
 
     {#if gateways.length === 0}

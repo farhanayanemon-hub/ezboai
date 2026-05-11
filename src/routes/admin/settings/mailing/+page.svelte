@@ -33,6 +33,7 @@
   let smtpPass = $state(data?.settings?.smtpPass || "");
   let fromEmail = $state(data?.settings?.fromEmail || "");
   let fromName = $state(data?.settings?.fromName || "");
+  let adminNotificationEmail = $state((data?.settings as any)?.adminNotificationEmail || "");
 
   $effect(() => {
     if (data?.settings && !form) {
@@ -43,6 +44,7 @@
       smtpPass = data.settings.smtpPass || "";
       fromEmail = data.settings.fromEmail || "";
       fromName = data.settings.fromName || "";
+      adminNotificationEmail = (data.settings as any).adminNotificationEmail || "";
     }
   });
 
@@ -355,6 +357,19 @@
                   <Label.Root for="fromName">From Name</Label.Root>
                   <Input.Root id="fromName" name="fromName" type="text" placeholder="Your Company Name" bind:value={fromName} disabled={data.isDemoMode} />
                 </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div class="space-y-4">
+              <div>
+                <h3 class="text-lg font-medium">Admin Notifications</h3>
+                <p class="text-sm text-muted-foreground">Email address that receives a notification whenever a user places an order (manual or automatic). Leave blank to use the From Email above.</p>
+              </div>
+              <div class="space-y-2">
+                <Label.Root for="adminNotificationEmail">Admin notification email</Label.Root>
+                <Input.Root id="adminNotificationEmail" name="adminNotificationEmail" type="email" placeholder="admin@yoursite.com" bind:value={adminNotificationEmail} disabled={data.isDemoMode} />
               </div>
             </div>
 

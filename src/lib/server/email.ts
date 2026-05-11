@@ -665,3 +665,126 @@ export const sendCreditPurchaseEmail = (data: Parameters<typeof emailService.sen
 export const sendExpiryWarningEmail = (data: Parameters<typeof emailService.sendExpiryWarningEmail>[0]) => emailService.sendExpiryWarningEmail(data)
 export const sendPlanUpgradeEmail = (data: Parameters<typeof emailService.sendPlanUpgradeEmail>[0]) => emailService.sendPlanUpgradeEmail(data)
 export const sendNoticeEmail = (data: Parameters<typeof emailService.sendNoticeEmail>[0]) => emailService.sendNoticeEmail(data)
+
+
+// ============================================================================
+// Admin notification helpers
+// ============================================================================
+
+export interface AdminOrderNotification {
+  source: 'manual' | 'opaybd-subscription' | 'opaybd-credit'
+  orderType: 'subscription' | 'credit'
+  userId: string | null
+  userEmail: string | null
+  userName?: string | null
+  planName: string
+  amount: number          // in major units (e.g. dollars, taka) — already divided
+  currency: string        // e.g. 'usd' | 'bdt'
+  gateway: string         // 'paypal' | 'opaybd' | etc
+  txnReference?: string | null
+  senderInfo?: string | null
+  userNotes?: string | null
+  orderId?: string | null
+  status: 'pending-verification' | 'completed'
+}
+
+/**
+ * Resolve the admin notification email address.
+ * Prefers admin_notification_email setting; falls back to from_email; then SMTP user.
+ */
+async function resolveAdminNotificationEmail(): Promise<string | null> {
+  try {
+    const { adminSettingsService } = await import('./admin-settings.js')
+    const adminEmail = await adminSettingsService.getSetting('admin_notification_email')
+    if (adminEmail && adminEmail.includes('@')) return adminEmail
+    const settings = await getMailingSettings()
+    const fallback = (settings as any)?.from_email || (settings as any)?.smtp_user
+    return fallback || null
+  } catch (e) {
+    console.error('[Admin Notify] Failed to resolve admin email:', e)
+    return null
+  }
+}
+
+/**
+ * Send admin a notification when ANY order is placed (manual or auto).
+ * Non-blocking: errors are logged but never thrown.
+ */
+export async function sendAdminOrderNotification(n: AdminOrderNotification): Promise<void> {
+  try {
+    const adminEmail = await resolveAdminNotificationEmail()
+    if (!adminEmail) {
+      console.warn('[Admin Notify] No admin email configured — skipping')
+      return
+    }
+
+    const platformName = await getSiteName()
+    const publicOrigin = await getPublicOrigin()
+
+    const isManual = n.source === 'manual'
+    const subjectPrefix = isManual
+      ? '[Action Needed] New manual payment submission'
+      : '[Order] New payment received'
+    const orderTypeLabel = n.orderType === 'credit' ? 'Credit pack' : 'Subscription plan'
+    const statusLabel = n.status === 'pending-verification'
+      ? 'PENDING — verify and approve in admin panel'
+      : 'AUTO-COMPLETED'
+    const amountStr = `${n.amount.toFixed(2)} ${n.currency.toUpperCase()}`
+
+    const reviewUrl = `${publicOrigin}/admin/orders${isManual ? '?tab=new' : ''}`
+
+    const html = `<!doctype html>
+<html><body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f5f5f7;padding:24px;color:#111">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e5ea">
+    <div style="background:${isManual ? '#fff7ed' : '#eff6ff'};padding:18px 24px;border-bottom:1px solid #e5e5ea">
+      <div style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:${isManual ? '#9a3412' : '#1e40af'};font-weight:600">${platformName} · Admin notification</div>
+      <div style="font-size:18px;font-weight:700;margin-top:4px">${subjectPrefix}</div>
+    </div>
+    <div style="padding:20px 24px">
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr><td style="padding:6px 0;color:#666;width:140px">Status</td><td style="padding:6px 0;font-weight:600;color:${n.status === 'pending-verification' ? '#b45309' : '#15803d'}">${statusLabel}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Order type</td><td style="padding:6px 0">${orderTypeLabel}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Plan / Pack</td><td style="padding:6px 0;font-weight:600">${n.planName}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Amount</td><td style="padding:6px 0;font-weight:600">${amountStr}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">Gateway</td><td style="padding:6px 0;text-transform:capitalize">${n.gateway}</td></tr>
+        <tr><td style="padding:6px 0;color:#666">User</td><td style="padding:6px 0">${n.userName || '—'}${n.userEmail ? ` &lt;${n.userEmail}&gt;` : ''}</td></tr>
+        ${n.userId ? `<tr><td style="padding:6px 0;color:#666">User ID</td><td style="padding:6px 0;font-family:monospace;font-size:12px">${n.userId}</td></tr>` : ''}
+        ${n.txnReference ? `<tr><td style="padding:6px 0;color:#666">Txn / Ref</td><td style="padding:6px 0;font-family:monospace;font-size:12px;word-break:break-all">${n.txnReference}</td></tr>` : ''}
+        ${n.senderInfo ? `<tr><td style="padding:6px 0;color:#666">Sender info</td><td style="padding:6px 0">${n.senderInfo}</td></tr>` : ''}
+        ${n.userNotes ? `<tr><td style="padding:6px 0;color:#666;vertical-align:top">User notes</td><td style="padding:6px 0;white-space:pre-wrap">${n.userNotes}</td></tr>` : ''}
+        ${n.orderId ? `<tr><td style="padding:6px 0;color:#666">Order ID</td><td style="padding:6px 0;font-family:monospace;font-size:12px">${n.orderId}</td></tr>` : ''}
+      </table>
+      <div style="margin-top:20px;text-align:center">
+        <a href="${reviewUrl}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">${isManual ? 'Review & verify order' : 'View in admin panel'}</a>
+      </div>
+      ${isManual ? `<p style="margin-top:18px;color:#666;font-size:13px;line-height:1.5">The user has submitted payment proof. Please verify the transaction on your gateway, then click <strong>Complete</strong> in the admin panel to activate their ${n.orderType === 'credit' ? 'credits' : 'subscription'}. The order will <strong>not</strong> be activated until you approve it.</p>` : ''}
+    </div>
+    <div style="background:#fafafa;padding:12px 24px;font-size:11px;color:#999;border-top:1px solid #e5e5ea">Automated notification from ${platformName}. Sent because an order was placed on your platform.</div>
+  </div>
+</body></html>`
+
+    const text = `${subjectPrefix}
+
+Status: ${statusLabel}
+Type: ${orderTypeLabel}
+Plan: ${n.planName}
+Amount: ${amountStr}
+Gateway: ${n.gateway}
+User: ${n.userName || ''} <${n.userEmail || ''}>
+${n.txnReference ? `Txn: ${n.txnReference}
+` : ''}${n.userNotes ? `Notes: ${n.userNotes}
+` : ''}
+Review: ${reviewUrl}`
+
+    await emailService.sendEmail({
+      to: adminEmail,
+      subject: `${subjectPrefix} · ${n.planName} (${amountStr})`,
+      html,
+      text,
+    })
+    console.log('[Admin Notify] Sent admin notification to', adminEmail, 'for', n.source, n.orderId || '')
+  } catch (err) {
+    console.error('[Admin Notify] Failed to send admin notification:', err)
+  }
+}
+
