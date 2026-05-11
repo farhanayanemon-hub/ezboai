@@ -29,6 +29,9 @@ export interface OpayPaymentMetadata {
         planTier: string;
         originalAmountCents: number;
         billingInterval: string;
+        // Optional fields used by credit-purchase flow
+        type?: string;
+        creditPlanId?: string;
 }
 
 export interface OpayVerificationResult {
@@ -66,7 +69,7 @@ export class OpayService {
 
                 const metadata = parsedMetadata as Partial<OpayPaymentMetadata>;
 
-                return {
+                const result: OpayPaymentMetadata = {
                         userId: String(metadata.userId ?? ''),
                         planId: String(metadata.planId ?? ''),
                         priceId: String(metadata.priceId ?? ''),
@@ -74,6 +77,10 @@ export class OpayService {
                         originalAmountCents: Number(metadata.originalAmountCents ?? 0),
                         billingInterval: String(metadata.billingInterval ?? ''),
                 };
+                // Preserve credit-purchase markers so handlePaymentSuccess can route correctly
+                if ((metadata as any).type) result.type = String((metadata as any).type);
+                if ((metadata as any).creditPlanId) result.creditPlanId = String((metadata as any).creditPlanId);
+                return result;
         }
 
         private static toCents(amount: number): number {
