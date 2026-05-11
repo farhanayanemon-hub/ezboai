@@ -39,11 +39,11 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const past = await db
       .select({ id: subscriptions.id })
-      .from(subscription)
+      .from(subscriptions)
       .where(and(eq(subscriptions.status, 'active'), lt(subscriptions.currentPeriodEnd, now)));
     for (const row of past) {
       await db
-        .update(subscription)
+        .update(subscriptions)
         .set({ status: 'expired', endedAt: now, updatedAt: now })
         .where(eq(subscriptions.id, row.id));
       expired++;
@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ request }) => {
         email: users.email,
         name: users.name,
       })
-      .from(subscription)
+      .from(subscriptions)
       .innerJoin(users, eq(users.id, subscriptions.userId))
       .where(
         and(
@@ -115,7 +115,7 @@ export const POST: RequestHandler = async ({ request }) => {
           daysRemaining: days,
         });
         await db
-          .update(subscription)
+          .update(subscriptions)
           .set({ renewalReminderSentAt: now, updatedAt: now })
           .where(eq(subscriptions.id, sub.id));
         remindersSent++;
