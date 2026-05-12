@@ -6,8 +6,17 @@ import { eq, desc, and } from 'drizzle-orm';
 import { CreditService } from '$lib/server/credit-service.js';
 import { getActivePaymentProvider } from '$lib/server/settings-store.js';
 import { getEnabledGateways } from '$lib/server/manual-gateways.js';
+import geoip from 'geoip-lite';
 
-export const load: PageServerLoad = async ({ parent }) => {
+export const load: PageServerLoad = async ({ parent, request }) => {
+	// Detect user country from IP — BD → BDT, everyone else → USD
+	const xff = request.headers.get('x-forwarded-for') || '';
+	const realIp = request.headers.get('x-real-ip') || xff.split(',')[0].trim();
+	let userCountry = '';
+	if (realIp) {
+		try { const lk = geoip.lookup(realIp); if (lk?.country) userCountry = lk.country; } catch {}
+	}
+	const userCurrency: 'BDT' | 'USD' = userCountry === 'BD' ? 'BDT' : 'USD';
         // Get session and user data from parent settings layout
         const { session, user } = await parent();
         
