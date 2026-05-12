@@ -457,7 +457,7 @@
     billingData.subscription?.plan
       ? {
           name: billingData.subscription.plan.name,
-          price: (billingData.userCurrency === 'BDT' && billingData.subscription.plan.priceAmountBdt)
+          price: (data.userCurrency === 'BDT' && billingData.subscription.plan.priceAmountBdt)
             ? `৳${(billingData.subscription.plan.priceAmountBdt / 100).toLocaleString('en-BD')}`
             : `$${(billingData.subscription.plan.priceAmount / 100).toFixed(2).replace(/\.00$/, "")}`,
           period: billingData.subscription.plan.billingInterval,
@@ -466,7 +466,7 @@
         }
       : {
           name: m["billing.free_plan"](),
-          price: billingData.userCurrency === 'BDT' ? "৳0" : "$0",
+          price: data.userCurrency === 'BDT' ? "৳0" : "$0",
           period: "month",
           tier: "free",
           features: [m["billing.feature_limited_ai_access"](), m["billing.feature_text_only_models"]()],
